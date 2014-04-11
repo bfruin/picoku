@@ -467,6 +467,10 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
       }  
     } else if (boardView == Board_View.GRID) {
       selectCell();
+    } else if (boardView == Board_View.ENTRY) {
+      game.setNumber(selectedRow, selectedCol, highlightedNumber);
+      highlightedNumber = -1;
+      boardView = Board_View.GRID;
     }
   } else if (gestureType == SimpleOpenNI.GESTURE_WAVE) {
     if (boardView == Board_View.ENTIRE) {
@@ -475,6 +479,8 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
       boardView = Board_View.ENTIRE;
       gridDisplayed = 0;
       highlightedBoardGrid = 0;    
+    } else if (boardView == Board_View.ENTRY) {
+      boardView = Board_View.GRID;  
     }
   } 
   
