@@ -23,6 +23,7 @@ Board_View boardView;
 int gridDisplayed;
 int highlightedBoardGrid;
 int highlightedCell;
+int highlightedNumber;
 
 // Colors
 color highlightedColor;
@@ -32,6 +33,9 @@ color inputColor;
 // Cells
 int selectedRow;
 int selectedCol;
+
+int prevX;
+int prevY;
 
 // Hand
 int handVecListSize = 20;
@@ -60,7 +64,6 @@ void setup() {
   kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
   
 }
- 
  
 void draw() {
   kinect.update();
@@ -103,12 +106,22 @@ void draw() {
      // Draw green circle at closest point
      fill(0, 255, 0);
      ellipse(closestX, closestY, 10, 10);
+  } else if (boardView == Board_View.ENTRY) {
+    background(255);
+    highlightNumber(closestX, closestY);
+    setAndFillHighlightedSquareGrid(closestX, closestY);
+    image(squareGrid, 0, 0);
+    fillGrid();
+    drawInputNumbers();  
+    // Draw green circle at closest point
+    fill(0, 255, 0);
+    ellipse(closestX, closestY, 10, 10);
   }
 }
 
 void fillGrid() {
   int[][] currentBoard = game.getBoard();
-  boolean[][] originalNumbers = game.getOriginalNumbers();
+  boolean[][] inputNumbers = game.getInputNumbers();
   if (boardView == Board_View.ENTIRE) {
     textSize(26);
     int currX = 138;
@@ -117,7 +130,7 @@ void fillGrid() {
       currX = 138;
       for (int j = 0; j < 9; j++) {
         if (currentBoard[j][i] != 0) { // Do not fill empty cells
-          if (originalNumbers[j][i]) {
+          if (inputNumbers[j][i]) {
             fill(inputColor);
           } else {
             fill(0, 0, 0);  
@@ -127,7 +140,7 @@ void fillGrid() {
       }
       currY += 44;  
     }
-  } else if (boardView == Board_View.GRID && gridDisplayed > 0) {
+  } else if ((boardView == Board_View.GRID || boardView == Board_View.ENTRY) && gridDisplayed > 0) {
     int[] rows;
     int[] cols;
     int startCol;
@@ -153,7 +166,7 @@ void fillGrid() {
         int row = rows[i];
         int col = cols[j];
         if(currentBoard[col][row] != 0) {
-          if (originalNumbers[col][row]) {
+          if (inputNumbers[col][row]) {
             fill(inputColor); 
           } else {
             fill(0, 0, 0); 
@@ -168,10 +181,10 @@ void fillGrid() {
 
 void selectCell() {
   int[][] currentBoard = game.getBoard();
-  boolean[][] originalNumbers = game.getOriginalNumbers();
+  boolean[][] inputNumbers = game.getInputNumbers();
   
   if (highlightedCell > 0) {
-    if (originalNumbers[selectedRow][selectedCol]) {
+    if (inputNumbers[selectedRow][selectedCol]) {
       // can not update original number  
     } else {
       boardView = Board_View.ENTRY;
@@ -230,11 +243,20 @@ void setAndFillHighlightedBoardGrid(int x, int y) {
 }
 
 void setAndFillHighlightedSquareGrid(int x, int y) {
+  if (boardView == Board_View.ENTRY) {
+    x = prevX;
+    y = prevY;   
+  }
+  
   if (x < 164 || x > 476 || y < 84 || y > 396) {
     highlightedCell = 0;
     selectedRow = -1;
     selectedCol = -1; 
   } else {
+    prevX = x;
+    prevY = y;
+    
+    
     int startX;
     int startY;
     
@@ -304,14 +326,52 @@ void setAndFillHighlightedSquareGrid(int x, int y) {
     drawCellContext();
   }  
 }
+void highlightNumber(int x, int y) {
+  if (x < 530) {
+    highlightedNumber = -1;
+  } else if (y < 240) { // clear, 1, 2, 3, 4
+    if (y < 150) {
+      if (y < 60) {
+        highlightedNumber = 0;  
+      } else if (y < 105) {
+        highlightedNumber = 1; 
+      } else {
+        highlightedNumber = 2; 
+      }
+    } else {
+      if (y < 195) {
+        highlightedNumber = 3;  
+      } else {
+        highlightedNumber = 4;
+      }
+    }
+  } else { // 5, 6, 7, 8, 9
+    if (y < 375) {
+      if (y < 285) {
+        highlightedNumber = 5;
+      } else if (y < 330) {
+        highlightedNumber = 6;  
+      } else {
+        highlightedNumber = 7;
+      }
+    } else {
+      if (y < 420) {
+        highlightedNumber = 8;    
+      } else {
+        highlightedNumber = 9;
+      }
+    }
+  }
+}
 
 void drawCellContext() {
   int currX = 15;
   int currY = 172;
   
   int[][] currentBoard = game.getBoard();
-  boolean[][] originalNumbers = game.getOriginalNumbers();
+  boolean[][] inputNumbers = game.getInputNumbers();
   
+  textSize(14);
   for (int i = 0; i < 9; i++) {
     currX = 15;
     for (int j = 0; j < 9; j++) {
@@ -323,15 +383,42 @@ void drawCellContext() {
       
       if (selectedRow == i || selectedCol == j) {
         rect(currX + j*15, currY, 15, 15); 
+        if (currentBoard[j][i] > 0) {
+          if (inputNumbers[j][i]) {
+            fill(inputColor);
+          } else {
+            fill(0, 0, 0); 
+          }
+          text(Integer.toString(currentBoard[j][i]), currX + j*15 + 3, currY+15);
+        }
       }
-      //if (currentBoard[j][i] != 0) { // Do not fill empty cells
-        
-        //text(Integer.toString(currentBoard[j][i]), currX + j*44, currY);     
-     // }
     }
     currY += 15;  
   }
   
+}
+
+void drawInputNumbers() {
+  textSize(35);
+ 
+  String possibilities[] = {"clear", "1", "2", "3",
+                            "4", "5", "6", "7",
+                            "8", "9"};
+  
+  if (highlightedNumber == 0) {
+    fill(255, 0, 0);  
+  } else {
+    fill(0, 0, 0); 
+  }
+  text(possibilities[0], 530, 40);
+  for (int i = 1; i < possibilities.length; i++) {
+    if (i == highlightedNumber) {
+      fill(255, 0, 0);
+    } else {
+      fill(0, 0, 0); 
+    }
+    text(possibilities[i], 558, 40*(i+1) + i*5);
+  }
 }
 
 
@@ -376,6 +463,7 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
       if (highlightedBoardGrid > 0) {
         gridDisplayed = highlightedBoardGrid;
         boardView = Board_View.GRID;
+        highlightedNumber = -1;
       }  
     } else if (boardView == Board_View.GRID) {
       selectCell();

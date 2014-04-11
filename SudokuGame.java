@@ -9,7 +9,7 @@ import java.util.List;
 public class SudokuGame {
     private int[][] solution;       // Generated solution.
     private int[][] game;           // Generated game with user input.
-    private boolean[][] originalNumbers;
+    private boolean[][] inputNumbers;
     private boolean[][] check;      // Holder for checking validity of game.
     private int selectedNumber;     // Selected number by user.
     private boolean help;           // Help turned on or off.
@@ -30,7 +30,7 @@ public class SudokuGame {
     public void newGame() {
         solution = generateSolution(new int[9][9], 0);
         game = generateGame(copy(solution));
-        originalNumbers = new boolean[9][9];
+        inputNumbers = new boolean[9][9];
 
     }
 
@@ -109,6 +109,7 @@ public class SudokuGame {
      */
     public void setNumber(int x, int y, int number) {
         game[y][x] = number;
+        inputNumbers[y][x] = true;
     }
 
     /**
@@ -352,8 +353,8 @@ public class SudokuGame {
        return solution; 
     }
     
-    public boolean[][] getOriginalNumbers() {
-       return originalNumbers; 
+    public boolean[][] getInputNumbers() {
+       return inputNumbers; 
     }
 }
 
