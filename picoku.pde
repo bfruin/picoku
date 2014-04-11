@@ -26,6 +26,7 @@ int highlightedCell;
 
 // Colors
 color highlightedColor;
+color highlightedCellColor;
 color inputColor;
 
 // Cells
@@ -169,7 +170,6 @@ void selectCell() {
   int[][] currentBoard = game.getBoard();
   boolean[][] originalNumbers = game.getOriginalNumbers();
   
-  
   if (highlightedCell > 0) {
     if (originalNumbers[selectedRow][selectedCol]) {
       // can not update original number  
@@ -232,6 +232,8 @@ void setAndFillHighlightedBoardGrid(int x, int y) {
 void setAndFillHighlightedSquareGrid(int x, int y) {
   if (x < 164 || x > 476 || y < 84 || y > 396) {
     highlightedCell = 0;
+    selectedRow = -1;
+    selectedCol = -1; 
   } else {
     int startX;
     int startY;
@@ -277,27 +279,59 @@ void setAndFillHighlightedSquareGrid(int x, int y) {
     fill(highlightedColor);
     rect(startX, startY, 104, 104);
     
-    if (highlightedCell > 0) {
-      int[] rows;
-      int[] cols;
-      int startCol;
+    int[] rows;
+    int[] cols;
+    int startCol;
     
-      if (gridDisplayed < 4) {  
-        rows = new int[] {0, 1, 2};
-        startCol = (gridDisplayed-1)*3;
-      } else if (gridDisplayed < 7) {
-        rows = new int[] {3, 4, 5};
-        startCol = (gridDisplayed-4)*3;
-      } else {
-        rows = new int[] {6, 7, 8};
-        startCol = (gridDisplayed-7)*3;
-      }
-      cols = new int[] {startCol, startCol+1, startCol+2};
-  
-      int row = (highlightedCell-1) / 3;
-      int col = (highlightedCell-1) % 3;
+    if (gridDisplayed < 4) {  
+      rows = new int[] {0, 1, 2};
+      startCol = (gridDisplayed-1)*3;
+    } else if (gridDisplayed < 7) {
+      rows = new int[] {3, 4, 5};
+      startCol = (gridDisplayed-4)*3;
+    } else {
+      rows = new int[] {6, 7, 8};
+      startCol = (gridDisplayed-7)*3;
     }
+    cols = new int[] {startCol, startCol+1, startCol+2};
+  
+    int row = (highlightedCell-1) / 3;
+    int col = (highlightedCell-1) % 3;
+    
+    selectedRow = rows[row];
+    selectedCol = cols[col];
+    
+    drawCellContext();
   }  
+}
+
+void drawCellContext() {
+  int currX = 15;
+  int currY = 172;
+  
+  int[][] currentBoard = game.getBoard();
+  boolean[][] originalNumbers = game.getOriginalNumbers();
+  
+  for (int i = 0; i < 9; i++) {
+    currX = 15;
+    for (int j = 0; j < 9; j++) {
+      if (selectedRow == i && selectedCol == j) {
+        fill(highlightedCellColor);
+      } else {
+        fill(255, 255, 255);  
+      }
+      
+      if (selectedRow == i || selectedCol == j) {
+        rect(currX + j*15, currY, 15, 15); 
+      }
+      //if (currentBoard[j][i] != 0) { // Do not fill empty cells
+        
+        //text(Integer.toString(currentBoard[j][i]), currX + j*44, currY);     
+     // }
+    }
+    currY += 15;  
+  }
+  
 }
 
 
@@ -420,6 +454,7 @@ void initializeGrids() {
 
 void initializeColors() {
   highlightedColor = color(255, 255, 153);
+  highlightedCellColor = color(255, 153, 102);
   inputColor = color(0, 0, 255);
 }
 
