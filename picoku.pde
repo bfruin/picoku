@@ -2,6 +2,8 @@
  *
  *
  */
+ 
+import java.util.Map;
 import SimpleOpenNI.*; 
  
 static final int KINECT_WIDTH = 640;
@@ -20,10 +22,20 @@ SudokuGame game;
 Board_View boardView;
 int gridDisplayed;
 int highlightedBoardGrid;
+int highlightedCell;
 
 // Colors
 color highlightedColor;
 color inputColor;
+
+// Cells
+int selectedRow;
+int selectedCol;
+
+// Hand
+int handVecListSize = 20;
+Map<Integer,ArrayList<PVector>> handPathList 
+          = new HashMap<Integer,ArrayList<PVector>>();
 
 void setup() {
   size(KINECT_WIDTH, KINECT_HEIGHT);   
@@ -40,6 +52,11 @@ void setup() {
   
   kinect = new SimpleOpenNI(this);
   kinect.enableDepth();
+  kinect.enableHand();
+  
+  // Set gesture listeners
+  kinect.startGesture(SimpleOpenNI.GESTURE_CLICK);
+  kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
   
 }
  
@@ -76,14 +93,22 @@ void draw() {
      // Draw green circle at closest point
      fill(0, 255, 0);
      ellipse(closestX, closestY, 10, 10);
-  } 
+  } else if (boardView == Board_View.GRID) {
+     background(255);
+     setAndFillHighlightedSquareGrid(closestX, closestY);
+     image(squareGrid, 0, 0);
+     fillGrid();
+     
+     // Draw green circle at closest point
+     fill(0, 255, 0);
+     ellipse(closestX, closestY, 10, 10);
+  }
 }
 
 void fillGrid() {
-  // Entire Grid
+  int[][] currentBoard = game.getBoard();
+  boolean[][] originalNumbers = game.getOriginalNumbers();
   if (boardView == Board_View.ENTIRE) {
-    int[][] currentBoard = game.getBoard();
-    boolean[][] originalNumbers = game.getOriginalNumbers();
     textSize(26);
     int currX = 138;
     int currY = 76;
@@ -102,16 +127,56 @@ void fillGrid() {
       currY += 44;  
     }
   } else if (boardView == Board_View.GRID && gridDisplayed > 0) {
+    int[] rows;
+    int[] cols;
+    int startCol;
     if (gridDisplayed < 4) {  
-       int startCol = (gridDisplayed-1)*3;
-       int endCol = startCol + 3;
-       for (int i = 0; i < 3; i++) {
-         for (int j = startCol; j < endCol; j++) {
-           
-         }  
-       }
-    } 
-  }  
+      rows = new int[] {0, 1, 2};
+      startCol = (gridDisplayed-1)*3;
+    } else if (gridDisplayed < 7) {
+      rows = new int[] {3, 4, 5};
+      startCol = (gridDisplayed-4)*3;
+    } else {
+      rows = new int[] {6, 7, 8};
+      startCol = (gridDisplayed-7)*3;
+    }
+    cols = new int[] {startCol, startCol+1, startCol+2};
+    
+    textSize(30);
+    int currX = 205;
+    int currY = 150;
+    
+    for (int i = 0; i < 3; i++) {
+      currX = 205;
+      for (int j = 0; j < 3; j++) {
+        int row = rows[i];
+        int col = cols[j];
+        if(currentBoard[col][row] != 0) {
+          if (originalNumbers[col][row]) {
+            fill(inputColor); 
+          } else {
+            fill(0, 0, 0); 
+          }
+          text(Integer.toString(currentBoard[col][row]), currX + j*104, currY);
+        }
+      }
+      currY += 104;  
+    }
+  }
+}
+
+void selectCell() {
+  int[][] currentBoard = game.getBoard();
+  boolean[][] originalNumbers = game.getOriginalNumbers();
+  
+  
+  if (highlightedCell > 0) {
+    if (originalNumbers[selectedRow][selectedCol]) {
+      // can not update original number  
+    } else {
+      boardView = Board_View.ENTRY;
+    }
+  }
 }
 
 void setAndFillHighlightedBoardGrid(int x, int y) {
@@ -164,8 +229,140 @@ void setAndFillHighlightedBoardGrid(int x, int y) {
   }  
 }
 
-// Initialization
+void setAndFillHighlightedSquareGrid(int x, int y) {
+  if (x < 164 || x > 476 || y < 84 || y > 396) {
+    highlightedCell = 0;
+  } else {
+    int startX;
+    int startY;
+    
+    if (x < 268) { // 1, 4, 7
+      startX = 164;
+      if (y < 188) {
+        highlightedCell = 1;
+        startY = 84;
+      } else if (y < 292) {
+        highlightedCell = 4;  
+        startY = 188;
+      } else {
+        highlightedCell = 7; 
+        startY = 292;
+      }
+    } else if (x < 372) { // 2, 5, 8
+      startX = 268;
+      if (y < 188) {
+        highlightedCell = 2;  
+        startY = 84;
+      } else if (y < 292) {
+        highlightedCell = 5;
+        startY = 188;  
+      } else {
+        highlightedCell = 8;
+        startY = 292; 
+      }
+    } else { // 3, 6, 9
+      startX = 372;
+      if (y < 188) {
+        highlightedCell = 3;  
+        startY = 84;
+      } else if (y < 292) {
+        highlightedCell = 6;
+        startY = 188;  
+      } else {
+        highlightedCell = 9; 
+        startY = 292;
+      }
+    }
+    
+    fill(highlightedColor);
+    rect(startX, startY, 104, 104);
+    
+    if (highlightedCell > 0) {
+      int[] rows;
+      int[] cols;
+      int startCol;
+    
+      if (gridDisplayed < 4) {  
+        rows = new int[] {0, 1, 2};
+        startCol = (gridDisplayed-1)*3;
+      } else if (gridDisplayed < 7) {
+        rows = new int[] {3, 4, 5};
+        startCol = (gridDisplayed-4)*3;
+      } else {
+        rows = new int[] {6, 7, 8};
+        startCol = (gridDisplayed-7)*3;
+      }
+      cols = new int[] {startCol, startCol+1, startCol+2};
+  
+      int row = (highlightedCell-1) / 3;
+      int col = (highlightedCell-1) % 3;
+    }
+  }  
+}
 
+
+// Hand Events
+void onNewHand(SimpleOpenNI curContext,int handId,PVector pos)
+{
+  println("onNewHand - handId: " + handId + ", pos: " + pos);
+ 
+  ArrayList<PVector> vecList = new ArrayList<PVector>();
+  vecList.add(pos);
+  
+  handPathList.put(handId,vecList);
+}
+
+void onTrackedHand(SimpleOpenNI curContext,int handId,PVector pos)
+{
+  //println("onTrackedHand - handId: " + handId + ", pos: " + pos );
+  
+  ArrayList<PVector> vecList = handPathList.get(handId);
+  if(vecList != null)
+  {
+    vecList.add(0,pos);
+    if(vecList.size() >= handVecListSize)
+      // remove the last point 
+      vecList.remove(vecList.size()-1); 
+  }  
+}
+
+void onLostHand(SimpleOpenNI curContext,int handId)
+{
+  println("onLostHand - handId: " + handId);
+  handPathList.remove(handId);
+}
+
+
+// Gesture Event
+void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
+{
+  println("onCompletedGesture - gestureType: " + gestureType + ", pos: " + pos);
+  if (gestureType == SimpleOpenNI.GESTURE_CLICK) {
+    if (boardView == Board_View.ENTIRE) {
+      if (highlightedBoardGrid > 0) {
+        gridDisplayed = highlightedBoardGrid;
+        boardView = Board_View.GRID;
+      }  
+    } else if (boardView == Board_View.GRID) {
+      selectCell();
+    }
+  } else if (gestureType == SimpleOpenNI.GESTURE_WAVE) {
+    if (boardView == Board_View.ENTIRE) {
+       // do something  
+    } else if (boardView == Board_View.GRID) {
+      boardView = Board_View.ENTIRE;
+      gridDisplayed = 0;
+      highlightedBoardGrid = 0;    
+    }
+  } 
+  
+  int handId = kinect.startTrackingHand(pos);
+  println("hand stracked: " + handId);
+}
+
+
+
+// Initialization
 void initializeGrids() {
   boardGrid = createGraphics(KINECT_WIDTH, KINECT_HEIGHT);
   boardGrid.beginDraw();
@@ -201,6 +398,7 @@ void initializeGrids() {
 
   boardGrid.endDraw();
 
+  squareGrid = createGraphics(KINECT_WIDTH, KINECT_HEIGHT);
   squareGrid.beginDraw();
   squareGrid.stroke(0, 0, 0);
   squareGrid.strokeWeight(3);
@@ -209,7 +407,12 @@ void initializeGrids() {
   squareGrid.line(164, 84, 164, 396);
   squareGrid.line(268, 84, 268, 396);
   squareGrid.line(372, 84, 372, 396);
-  squareGrid.line(476, 84, 476, 84);
+  squareGrid.line(476, 84, 476, 396);
+  
+  squareGrid.line(164, 84, 476, 84);
+  squareGrid.line(164, 188, 476, 188);
+  squareGrid.line(164, 292, 476, 292);
+  squareGrid.line(164, 396, 476, 396);
   
   squareGrid.endDraw();
 
