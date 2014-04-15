@@ -63,6 +63,7 @@ void setup() {
   kinect.startGesture(SimpleOpenNI.GESTURE_CLICK);
   kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
   
+  
 }
  
 void draw() {
@@ -116,6 +117,8 @@ void draw() {
     // Draw green circle at closest point
     fill(0, 255, 0);
     ellipse(closestX, closestY, 10, 10);
+  } else {  // RESET
+    
   }
 }
 
@@ -453,6 +456,11 @@ void onLostHand(SimpleOpenNI curContext,int handId)
   handPathList.remove(handId);
 }
 
+void displayCongratulations() {
+     textSize(35);
+     text("Congratulations!", KINECT_WIDTH/2 - 20, KINECT_HEIGHT/2);
+}
+
 
 // Gesture Event
 void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
@@ -470,7 +478,12 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
     } else if (boardView == Board_View.ENTRY) {
       game.setNumber(selectedRow, selectedCol, highlightedNumber);
       highlightedNumber = -1;
-      boardView = Board_View.GRID;
+      if (game.checkGameCompleted()) {
+        displayCongratulations();
+        boardView = Board_View.RESET;
+      } else {
+        boardView = Board_View.GRID;  
+      }
     }
   } else if (gestureType == SimpleOpenNI.GESTURE_WAVE) {
     if (boardView == Board_View.ENTIRE) {

@@ -46,6 +46,17 @@ public class SudokuGame {
         }
 
     }
+    
+    public boolean checkGameCompleted() {
+      for (int i = 0; i < 9; i++) {
+        for (int j = 0; j < 9; j++) {
+          if (game[i][j] != solution[i][j]) {
+            return false;  
+          }
+        } 
+      }
+      return true;  
+    }
 
     /**
      * Sets help turned on or off.<br />
