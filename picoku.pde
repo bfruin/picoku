@@ -5,11 +5,13 @@
  
 import java.util.Map;
 import SimpleOpenNI.*; 
+import processing.serial.*;
  
 static final int KINECT_WIDTH = 640;
 static final int KINECT_HEIGHT = 480;
  
 SimpleOpenNI kinect;
+Serial port;
  
 // Grid 
 PGraphics boardGrid;
@@ -42,18 +44,13 @@ int handVecListSize = 20;
 Map<Integer,ArrayList<PVector>> handPathList 
           = new HashMap<Integer,ArrayList<PVector>>();
 
+int completedFrames;
+
 void setup() {
   size(KINECT_WIDTH, KINECT_HEIGHT);   
-  background(255); 
-   
-  initializeGrids();
-  game = new SudokuGame();
-  fillGrid();
-  gridDisplayed = 0; // Entire board
-  
-  initializeColors();
-  
-  boardView = Board_View.ENTIRE;
+  port = new Serial(this, Serial.list()[5], 9600);
+  movePico(0);
+  newGame();
   
   kinect = new SimpleOpenNI(this);
   kinect.enableDepth();
@@ -62,19 +59,31 @@ void setup() {
   // Set gesture listeners
   kinect.startGesture(SimpleOpenNI.GESTURE_CLICK);
   kinect.startGesture(SimpleOpenNI.GESTURE_WAVE);
+}
+
+void newGame() {
+  background(255); 
+   
+  initializeGrids();
+  game = new SudokuGame();
+  fillGrid();
+  gridDisplayed = 0; // Entire board
+
+  initializeColors();
   
-  
+  boardView = Board_View.ENTIRE;
+  completedFrames = 0;
 }
  
 void draw() {
   kinect.update();
-  
+
   int[] depthValues = kinect.depthMap();
   
   int closestValue = 8000;
   int closestX = 0;
   int closestY = 0;
-  
+
   for (int y = 0; y < KINECT_HEIGHT; y++) {
     for (int x = 0; x < KINECT_WIDTH; x++) {
       int pixelIndex = x + (y * KINECT_WIDTH);
@@ -87,7 +96,6 @@ void draw() {
        }
      }
   }
-  
   if (boardView == Board_View.ENTIRE) {
      // Redraw grid to remove previous dot
      background(255);
@@ -118,7 +126,10 @@ void draw() {
     fill(0, 255, 0);
     ellipse(closestX, closestY, 10, 10);
   } else {  // RESET
-    
+    if (completedFrames > 50) {
+      newGame();
+    }
+    completedFrames++;
   }
 }
 
@@ -457,10 +468,27 @@ void onLostHand(SimpleOpenNI curContext,int handId)
 }
 
 void displayCongratulations() {
-     textSize(35);
-     text("Congratulations!", KINECT_WIDTH/2 - 20, KINECT_HEIGHT/2);
+    background(255);
+    setAndFillHighlightedBoardGrid(0, 0);
+    image(boardGrid, 0, 0);
+    fillGrid();
+  
+    textSize(40);
+    fill(0, 0, 255);
+    text("Congratulations!", KINECT_WIDTH/2 - 150, KINECT_HEIGHT/2);
 }
 
+// Move pico left (-1), neutral (0) or right (1)
+void movePico (int direction) {
+  println("Move pico " + direction);
+  if (direction < 0) {
+    port.write(0);
+  } else if (direction == 0) {
+    port.write(62);
+  } else {
+    port.write(125);
+  }  
+}
 
 // Gesture Event
 void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
@@ -472,6 +500,11 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
         gridDisplayed = highlightedBoardGrid;
         boardView = Board_View.GRID;
         highlightedNumber = -1;
+        if ((highlightedBoardGrid-1) % 3 == 0) { // Move pico to left
+          movePico(-1);
+        } else if ((highlightedBoardGrid-3) % 3 == 0) { // Move pico to right
+          movePico(1);
+        }
       }  
     } else if (boardView == Board_View.GRID) {
       selectCell();
@@ -479,6 +512,7 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
       game.setNumber(selectedRow, selectedCol, highlightedNumber);
       highlightedNumber = -1;
       if (game.checkGameCompleted()) {
+        movePico(0);
         displayCongratulations();
         boardView = Board_View.RESET;
       } else {
@@ -489,6 +523,7 @@ void onCompletedGesture(SimpleOpenNI curContext,int gestureType, PVector pos)
     if (boardView == Board_View.ENTIRE) {
        // do something  
     } else if (boardView == Board_View.GRID) {
+      movePico(0);
       boardView = Board_View.ENTIRE;
       gridDisplayed = 0;
       highlightedBoardGrid = 0;    
