@@ -1,6 +1,10 @@
 /* 
+ *  Picoku  
+ *  Play Sudoku with a Pico projector and Windows Kinect
+ *  by Brendan Fruin and Kristin Williams
  *
- *
+ *  Kinect uses SimpleOpenNI
+ *  following Greg Borenstein's Making Things See
  */
  
 import java.util.Map;
